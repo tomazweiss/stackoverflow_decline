@@ -1,0 +1,57 @@
+
+-- https://data.stackexchange.com/stackoverflow/query/new
+
+-- schema:
+-- https://meta.stackexchange.com/questions/2677/database-schema-documentation-for-the-public-data-dump-and-sede
+-- https://i.sstatic.net/JZHsN.png
+
+
+-- number of questions over time
+select
+  DATETRUNC(day, p.CreationDate) as day,
+  count(*) as n_questions
+from 
+  Posts p
+where 
+  PostTypeId = 1 -- question
+group by
+  DATETRUNC(day, p.CreationDate)
+order by 1;
+
+
+-- monthly number of questions by tag for most popular tags
+with target_tags as
+  (select
+    TagName as tag_name,
+    count(*) as cnt
+  from 
+    Posts p
+    inner join
+    PostTags pt on p.Id = pt.PostId
+    inner join
+    Tags t on pt.TagId = t.Id
+  where PostTypeId = 1 -- question
+  and DATETRUNC(mm, p.CreationDate) between '2022-01-01' and '2022-12-01'
+  group by
+    TagName
+    having count(*) >= 7000
+   )
+select
+  tt.tag_name,
+  DATETRUNC(mm, p.CreationDate) as month,
+  count(*) as n_questions
+from 
+  Posts p
+  inner join
+  PostTags pt on p.Id = pt.PostId
+  inner join
+  Tags t on pt.TagId = t.Id
+  inner join 
+  target_tags tt on t.TagName = tt.tag_name
+where 
+  PostTypeId = 1 -- question
+  and DATETRUNC(mm, p.CreationDate) between '2022-11-01' and '2025-02-01'
+group by
+  tt.tag_name,
+  DATETRUNC(mm, p.CreationDate)
+order by 1, 2;
